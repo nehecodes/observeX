@@ -1,0 +1,75 @@
+global:
+  resolve_timeout: 5m
+  slack_api_url: 'replace this'
+
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+route:
+  group_by: ['alertname', 'severity', 'team']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: 'slack-devops-alerts'
+
+  routes:
+    - matchers:
+        - severity = "critical"
+      receiver: 'slack-devops-alerts'
+      repeat_interval: 1h
+      continue: false
+    - matchers:
+        - severity = "warning"
+      receiver: 'slack-devops-alerts'
+      repeat_interval: 4h
+      continue: false
+    - matchers:
+        - severity = "info"
+      receiver: 'slack-devops-alerts'
+      repeat_interval: 12h
+      continue: false
+
+inhibit_rules:
+  - source_matchers:
+      - alertname = "HostDown"
+    target_matchers:
+      - alertname =~ "CPU.*|Memory.*|Disk.*|SLO.*|Availability.*|Latency.*"
+    equal: ['instance']
+  - source_matchers:
+      - alertname = "CPUCritical"
+    target_matchers:
+      - alertname = "CPUWarning"
+    equal: ['instance']
+  - source_matchers:
+      - alertname = "MemoryCritical"
+    target_matchers:
+      - alertname = "MemoryWarning"
+    equal: ['instance']
+  - source_matchers:
+      - alertname = "DiskCritical"
+    target_matchers:
+      - alertname = "DiskWarning"
+    equal: ['instance']
+  - source_matchers:
+      - alertname =~ "SLOFastBurn|AvailabilityFastBurn|LatencyFastBurn"
+    target_matchers:
+      - alertname =~ "SLOSlowBurn|AvailabilitySlowBurn|LatencySlowBurn"
+    equal: ['slo']
+
+receivers:
+  - name: 'slack-devops-alerts'
+    slack_configs:
+      - channel: '#DevOps-Alerts'
+        send_resolved: true
+        icon_emoji: ':fire:'
+        username: 'Alertmanager'
+        title: '{{ template "observeX.title" . }}'
+        text: '{{ template "observeX.text" . }}'
+        color: '{{ template "observeX.color" . }}'
+        actions:
+          - type: button
+            text: 'View Dashboard'
+            url: '{{ with (index .Alerts 0).Annotations.dashboard_url }}{{ . }}{{ else }}http://35.182.228.47:3000{{ end }}'
+          - type: button
+            text: 'View Runbook'
+            url: '{{ with (index .Alerts 0).Annotations.runbook_url }}{{ . }}{{ else }}https://github.com/nehecodes/observeX/tree/main/runbooks{{ end }}'
