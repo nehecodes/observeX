@@ -6,11 +6,9 @@ distributor:
     otlp:
       protocols:
         grpc:
-          # Internal port — the OTel Collector forwards here from its public 4317 listener.
-          # Tempo does NOT expose 4317 externally to avoid a port conflict with the collector.
-          endpoint: 0.0.0.0:4319
+          endpoint: 0.0.0.0:4317
         http:
-          endpoint: 0.0.0.0:4320
+          endpoint: 0.0.0.0:4318
 
 ingester:
   lifecycler:
